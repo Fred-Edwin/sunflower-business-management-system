@@ -6,9 +6,8 @@ import { Tier2Gallery } from "./tier2"
 // /dev/gallery — every component in every state as a separate static instance
 // (PHASE-00B §5.5 / §6.5). Excluded from production by the (dev) layout.
 //
-// Vertical-slice coverage: Tier 1 primitives + the three demoted blocks. The
-// 28 Tier 2 composites (§5.3) and their bands are the deferred follow-up
-// (§7, §10 item 1) — their sections will be added here alongside the build.
+// Coverage: Tier 1 primitives, the three demoted blocks, and the 28 Tier 2
+// composites (§5.3) — every state and variant axis per the §5.5 matrix.
 export default function GalleryPage() {
   return (
     <div className="mx-auto flex max-w-[var(--container-app)] flex-col px-4 py-8 md:px-8">

@@ -98,11 +98,11 @@ export function SearchableList({
         {loading ? (
           <div className="flex flex-col">
             <div className="flex h-9 items-center px-3">
-              <span className="h-2.5 w-32 rounded-sm bg-neutral-100" />
+              <span className="h-2.5 w-32 rounded-sm bg-surface-sunken" />
             </div>
             <div className="flex h-9 items-center justify-between px-3">
-              <span className="h-2.5 w-40 rounded-sm bg-neutral-100" />
-              <span className="h-2.5 w-14 rounded-sm bg-neutral-100" />
+              <span className="h-2.5 w-40 rounded-sm bg-surface-sunken" />
+              <span className="h-2.5 w-14 rounded-sm bg-surface-sunken" />
             </div>
           </div>
         ) : enabled.length === 0 ? (

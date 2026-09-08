@@ -112,6 +112,9 @@ export function LineItemRow(props: LineItemRowProps) {
         )}
       >
         <div className={cn(CELL, "w-[240px]")}>
+          {/* Document variant: name is REGULAR weight (band 51H-0), unlike the
+              quote variant's medium — the row carries no interaction so it
+              reads quieter. */}
           <div className="truncate text-sm leading-[18px] text-text-primary">
             {props.name}
           </div>

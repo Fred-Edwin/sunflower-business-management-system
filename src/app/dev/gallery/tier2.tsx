@@ -233,9 +233,9 @@ function AvailabilitySection() {
       <StateRow label="worst day is low (tinted warning-subtle)">
         <DayAvailabilityStrip
           byDay={[
-            { day: "2026-10-14", available: 1 },
-            { day: "2026-10-15", available: 3 },
-            { day: "2026-10-16", available: 4 },
+            { day: "2026-10-17", available: 1 },
+            { day: "2026-10-18", available: 3 },
+            { day: "2026-10-19", available: 4 },
           ]}
           minAvailable={1}
           checkedQuantity={2}
@@ -244,9 +244,9 @@ function AvailabilitySection() {
       <StateRow label="worst day is fine (tinted success-subtle)">
         <DayAvailabilityStrip
           byDay={[
-            { day: "2026-10-14", available: 6 },
-            { day: "2026-10-15", available: 5 },
-            { day: "2026-10-16", available: 7 },
+            { day: "2026-10-17", available: 6 },
+            { day: "2026-10-18", available: 5 },
+            { day: "2026-10-19", available: 7 },
           ]}
           minAvailable={5}
           checkedQuantity={2}
@@ -351,15 +351,17 @@ function DocumentsSection() {
       note="LineItemRow × quote|document|voice. document = read-only always (INV-I2), snapshot props only (INV-P2). Bands 51H-0 / 5ES-0 / 573-0 / 5G9-0 / 5HH-0."
     >
       <StateRow label='LineItemRow variant="quote" (header + 2 rows, over-availability on row 2)'>
-        <div className="w-full max-w-[960px] overflow-x-auto rounded-md border border-border">
-          <div className="flex border-b border-border-strong bg-surface-sunken">
-            <div className="w-8 shrink-0 px-2.5 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.03em] text-text-secondary">#</div>
-            <div className="w-[240px] shrink-0 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.03em] text-text-secondary">Item</div>
-            <div className="w-[200px] shrink-0 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.03em] text-text-secondary">Description</div>
-            <div className="w-20 shrink-0 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.03em] text-text-secondary">Qty</div>
-            <div className="w-[150px] shrink-0 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.03em] text-text-secondary">Availability</div>
-            <div className="w-[120px] shrink-0 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.03em] text-text-secondary">Unit price</div>
-            <div className="w-[120px] shrink-0 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.03em] text-text-secondary">Total</div>
+        {/* Header follows the D9-0 DataTable revision: blue-wash band, heavy
+            bottom rule, 12/500/normal-case labels, sharp corners, no zebra. */}
+        <div className="w-full max-w-[960px] overflow-x-auto border border-border">
+          <div className="flex border-b border-table-header-border bg-table-header">
+            <div className="w-8 shrink-0 px-2.5 py-2 text-right text-xs font-medium leading-4 text-text-primary">#</div>
+            <div className="w-[240px] shrink-0 px-3 py-2 text-xs font-medium leading-4 text-text-primary">Item</div>
+            <div className="w-[200px] shrink-0 px-3 py-2 text-xs font-medium leading-4 text-text-primary">Description</div>
+            <div className="w-20 shrink-0 px-3 py-2 text-xs font-medium leading-4 text-text-primary">Qty</div>
+            <div className="w-[150px] shrink-0 px-3 py-2 text-xs font-medium leading-4 text-text-primary">Availability</div>
+            <div className="w-[120px] shrink-0 px-3 py-2 text-right text-xs font-medium leading-4 text-text-primary">Unit price</div>
+            <div className="w-[120px] shrink-0 px-3 py-2 text-right text-xs font-medium leading-4 text-text-primary">Total</div>
             <div className="w-9 shrink-0" />
           </div>
           <LineItemRow
@@ -386,7 +388,9 @@ function DocumentsSection() {
         </div>
       </StateRow>
       <StateRow label='LineItemRow variant="document" (no #, no availability, no stepper, no delete — read-only always)'>
-        <div className="w-full max-w-[720px] rounded-md border border-border">
+        {/* Wide fixed-column row — scrolls inside its own container; on a real
+            screen it projects to a card below md (DataTable card contract). */}
+        <div className="w-full max-w-[720px] overflow-x-auto border border-border">
           <LineItemRow
             variant="document"
             name="Chiavari chairs, gold"
@@ -484,6 +488,14 @@ function DocumentsSection() {
             title="No history yet"
             body="Quotes, invoices and events for this client will appear here."
             actions={<Button size="lg">New quote</Button>}
+          />
+        </div>
+        <div className="w-[320px]">
+          <EmptyState
+            icon={<ShapesIcon />}
+            title="No active catalog items"
+            body="Add tents, chairs, decor or PA equipment to start quoting."
+            actions={<Button size="lg">Go to catalog</Button>}
           />
         </div>
         <div className="w-[320px]">

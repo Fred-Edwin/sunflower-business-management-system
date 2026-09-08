@@ -98,8 +98,8 @@ export function CalendarGrid({
 
             {loading ? (
               <>
-                <span className="h-[34px] rounded-md bg-neutral-100" />
-                <span className="h-[34px] w-3/4 rounded-md bg-neutral-100" />
+                <span className="h-[34px] rounded-md bg-surface-sunken" />
+                <span className="h-[34px] w-3/4 rounded-md bg-surface-sunken" />
               </>
             ) : (
               day.events?.map((ev) => (

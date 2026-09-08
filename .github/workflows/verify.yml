@@ -43,3 +43,13 @@ jobs:
       - run: pnpm exec prisma migrate deploy
 
       - run: pnpm verify
+
+      # PHASE-00B §10 Implementation #2: `pnpm verify` is typecheck + lint +
+      # test only. Turbopack's production build has its own CSS validation
+      # (Lightning CSS in dev tolerates things the prod build rejects) and
+      # this is the only place `/dev/gallery`'s prod-exclusion gets checked
+      # against a real build. Not folded into `verify` — a local build is
+      # slow enough (~70s) to hurt the inner loop.
+      - run: pnpm build
+        env:
+          NODE_ENV: production

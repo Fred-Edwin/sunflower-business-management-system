@@ -1,6 +1,6 @@
 # PHASE-00B · Design system in code
 
-**Status:** Planning
+**Status:** Complete
 **Written by:** Orchestrator, 2026-09-07
 
 > This phase is design stages **D4 and D5** of `design-system.md` §1. It is
@@ -690,14 +690,287 @@ the two `open` instances for a static `ConfirmDialogPanelPreview` (gallery-only
 div mirroring the panel); the resting state still opens a real dialog from its
 trigger. Verified the page scrolls, 0 mounted overlays.
 
-### <date> · Orchestrator — D5 + review (fresh session)
-Fidelity check (3–4 gallery components exported to Paper vs. running-gallery
-screenshots): match / drift — and therefore MCP trusted for D6 / Snapshot path.
-Components reconciled against artboard 4U2-0:
-Invariants checked (§4):
-Violations found:
-Resolved:
-Status set to Complete:
+### 2026-09-08 · Implementation (follow-up) — Tier 2 composites
+
+**Scope: §6.4 in full — the 28 Tier 2 composites + their §5.5 gallery bands.**
+Built from Tier 1, semantic tokens only, one file per component in
+`src/components/`. Paper values pulled with `get_jsx` on every band (4U7-0 …
+5RU-0) before building — never read off a screenshot.
+
+**Built (24 files, 28 exports):**
+- Money/qty: `MoneyDisplay.tsx` (cents|null in, `formatMoney()` at the render
+  boundary, tabular-nums, Geist Mono; positive/zero/negative/null/loading),
+  `QuantityInput.tsx` (`row` 24px / `standalone` 36px ± steppers;
+  over-availability = warning border, never blocks — INV-A6; disabled;
+  aria-invalid).
+- Status: `StatusBadge.tsx` (6px dot + label, no chip; document 10 / event 4 /
+  inventory 5; terminal → muted label; filter-chip interaction states),
+  `DocumentStatusBadge.tsx` (named wrapper), `AvailabilityBadge.tsx` (wraps
+  inventory severity; "N of M free" / "N free · day"; loading / not-checked).
+- Availability: `DayAvailabilityStrip.tsx` — worst-day encoding EXACTLY per
+  inventory-availability.md §7 (`byDay` entry === `minAvailable`, ties →
+  earliest; warning-subtle when `< checkedQuantity`, else success-subtle, +
+  border-strong outline; every other cell untinted). Own `overflow-x:auto`
+  container.
+- Pickers: `ClientPicker.tsx`, `CatalogItemPicker.tsx`, `SearchInput.tsx`, and
+  `internal/searchable-list.tsx` — ONE internal `SearchableList` behind the
+  three pickers (§5.4), not exported, no gallery entry of its own. See
+  Deviations below re: Combobox base.
+- Documents: `LineItemRow.tsx` (`quote` | `document` | `voice`; document is
+  read-only ALWAYS — INV-I2; snapshot values as props, no catalog lookup —
+  INV-P2; voice flag text never truncates — INV-V5), `TotalsPanel.tsx`
+  (`ledger` | `statcards`, all figures via `MoneyDisplay`),
+  `PageHeader.tsx` (desktop + mobile top-bar; Geist Mono for reference-number
+  titles; empty / error states), `EmptyState.tsx`, `ConfirmDialog.tsx`
+  (Dialog base; confirm button names the action; pending / error-stays-open).
+- Banners: `ConflictBanner.tsx` (full + compact pill; NO forward link —
+  INV-A6) and `DocumentNoticeBanner.tsx` (`danger` | `neutral`; ALWAYS a
+  forward-link button — INV-I3). Two components, not merged.
+- Voice: `VoiceMicButton.tsx` (`fab` | `pill`; idle / recording / processing),
+  `VoiceReviewField.tsx` (flag = warning border + uppercase label + triangle,
+  colour never alone — INV-V5; resting = passthrough), `TranscriptPanel.tsx`
+  (no collapsed state — INV-V3; transcript inline in every state incl.
+  extraction-failed).
+- Calendar: `SegmentedToggle.tsx`, `DateRangeControl.tsx`,
+  `CalendarSpanControl.tsx` (composed from SegmentedToggle + icon buttons),
+  `CalendarGrid.tsx` + `EventChip.tsx`, `AgendaDayGroup.tsx` +
+  `AgendaEventRow.tsx`.
+
+**Gallery:** `src/app/dev/gallery/tier2.tsx` added, rendered from `page.tsx`
+after `<BlocksGallery />`. Nine sections mirroring §5.3, every state + each
+component's variant axis as separate static forced-state instances. Reuses
+`<GallerySection>` / `<StateRow>` from `gallery-shell.tsx`. Interactive
+popovers/dialogs are shown at their trigger (a force-mounted Radix overlay
+engages `react-remove-scroll` and freezes the page); `ConfirmDialog` pending /
+error use a static `ConfirmDialogPanelPreview` mirror kept in sync by eye.
+
+**§5.4 `capturedAt` decision: DROPPED.** Band 573-0 draws no capture-time chip,
+and `TranscriptPanel`'s provenance line ("0:23 · Deepgram") already carries
+capture metadata on the one screen that needs it. `PageHeader` has no
+`capturedAt` prop.
+
+**@tanstack/react-table: NOT added.** No composite this session needed the
+sort/selection plumbing — `DataTable.tsx` still models sort as a controlled
+`sort` prop. Unchanged from the vertical slice's decision; the real table
+screen (D6/PHASE-01) adds it.
+
+**globals.css: no change by this session.** The DataTable D9-0 revision (see
+below) added `--color-blue-grey-100` / `--color-table-header` /
+`--color-table-header-border` — that was a separate design revision landed
+alongside, not this session's work.
+
+**Contract changes (§5): none.** The §5.3 inventory is built as written.
+
+**Deviations from §5.3, recorded:**
+1. **Pickers compose `Popover` + `SearchableList`, not the base-ui `Combobox`
+   primitive.** §5.3 says "Combobox base". The base-ui Combobox API (item
+   collections, async filtering) has no consumer to shape it against with no
+   data layer, and wiring it blind risked getting the contract wrong. The
+   three pickers are the visual + interaction contract (trigger 36px, popover
+   surface-raised + shadow-md, options 32px, keyboard nav in `SearchableList`,
+   create / no-match / loading / empty states) and D6 swaps the internals to
+   the Combobox primitive when real client/catalog queries exist. `SearchableList`
+   is the seam that keeps that swap local.
+2. **DataTable + LineItemRow header treatment now follows the D9-0 revision**
+   (blue-wash band, heavy `--color-table-header-border` rule, 12/500
+   normal-case labels, sharp corners, no zebra) — this DIVERGES from bands
+   58H-0 / 51H-0 on Paper, which still show the pre-D9-0 style
+   (surface-sunken, 11/600 uppercase, rounded, zebra). Logged for D5 to
+   reconcile — see §10. CalendarGrid's weekday header and AgendaDayGroup's
+   date header stay on `surface-sunken` (they are not data-column headers and
+   the bands draw them that way).
+
+**Visual-diff pass (this session, section by section vs. the artboard bands):**
+running gallery at 1440px screenshotted per section against `get_screenshot`
+of each band. Verdicts: Money/qty MATCH · Status MATCH · Availability MATCH
+(gallery day-labels re-anchored to a Saturday so they read like the band) ·
+Pickers MATCH (open popover shown at the trigger, not statically) · Documents
+MATCH (document-variant name confirmed regular weight per 51H-0) · Banners
+MATCH · Voice MATCH (VoiceReviewField near-pixel) · Calendar MATCH
+(AgendaDayGroup near-pixel). Drifts found were gallery-data or Paper-mock
+issues, not component defects — the two real Paper-vs-code divergences
+(minus-sign glyph, "Balance" vs "Balance computed", and the D9-0 header) are
+in §10 for D5.
+
+**Responsive:** gallery navigated at 390px — one page-level horizontal-scroll
+bug found and fixed (the `LineItemRow variant="document"` gallery wrapper
+lacked `overflow-x-auto`, so its wide fixed-column row pushed the page body to
+657px). After the fix `document.scrollWidth === innerWidth === 390`. Wide
+LineItemRow / DataTable regions scroll inside their own containers only.
+
+**Verification:** `pnpm verify` passes (typecheck + lint + 32/32 tests).
+`pnpm build` (production, Turbopack) passes, exit 0 — `/dev/gallery`
+prerenders (231 kB). App run: signed in with the seeded credentials, every new
+tier2.tsx section renders and the page scrolls vertically only.
+
+**Gotcha for the next session:** never run `pnpm build` and `pnpm dev`
+concurrently against this tree — it corrupts `.next/` (ENOENT on
+`_buildManifest.js.tmp.*`), forcing `rm -rf .next` + restart. This can also be
+triggered by a second agent in the same session. Sequence: verify → build →
+dev. Dev falling back to port 3001 gets a 403 on `/api/auth/sign-in/email`
+because `BETTER_AUTH_URL` is pinned to `:3000`.
+
+**Files touched:** new `src/components/{MoneyDisplay,QuantityInput,StatusBadge,
+DocumentStatusBadge,AvailabilityBadge,DayAvailabilityStrip,ClientPicker,
+CatalogItemPicker,SearchInput,LineItemRow,TotalsPanel,PageHeader,EmptyState,
+ConfirmDialog,ConflictBanner,DocumentNoticeBanner,VoiceMicButton,
+VoiceReviewField,TranscriptPanel,SegmentedToggle,DateRangeControl,
+CalendarSpanControl,CalendarGrid,EventChip,AgendaDayGroup,AgendaEventRow}.tsx`;
+new `src/components/internal/searchable-list.tsx`; new
+`src/app/dev/gallery/tier2.tsx`; edited `src/app/dev/gallery/page.tsx`.
+(`src/components/DataTable.tsx` + `src/styles/globals.css` D9-0 revision landed
+in a separate concurrent revision, not this session.)
+
+### 2026-09-08 · Orchestrator — D5 + review (fresh session)
+
+**Fidelity check (design-system.md §1 D5).** Signed in as Susan, ran the shell
+and `/dev/gallery` at 1440px in a real browser. Exported four bands to Paper
+and compared against running-gallery screenshots of the same components:
+`MoneyDisplay` (4X8-0), `StatusBadge` (4U7-0), `LineItemRow` (51H-0),
+`TranscriptPanel` (5OJ-0). **StatusBadge and TranscriptPanel: exact match** —
+same anatomy, same states, same copy. **MoneyDisplay: match except the known
+minus-glyph divergence** (below). **LineItemRow: match except the known
+pre-D9-0 header** (below). No *unexpected* drift on any of the four. **Verdict:
+MCP is trusted for D6** — no fallback to the Snapshot extension needed.
+
+**Reconciliation against artboard 4U2-0 (design-system.md §1 D5 — code is the
+source of truth for tokens and token-driven visual decisions from D1 on).**
+Independently re-walked every band (not taken on the follow-up session's
+verdicts alone) via `get_screenshot`, cross-checked against the running
+gallery and, for exact values, the component source. Components reconciled:
+
+- **DataTable (58H-0) and LineItemRow (51H-0) headers → D9-0.** Both bands
+  still drew the pre-D9-0 header (surface-sunken fill, 11px/600/0.03em
+  uppercase labels, rounded container, zebra on alternating rows). Updated
+  both to match `DataTable.tsx` / `LineItemRow.tsx` exactly: header
+  background → `--color-table-header`, bottom rule → 1px
+  `--color-table-header-border`, labels → 12px/500/normal-case/`text-primary`,
+  outer container radius → 0 (sharp corners), zebra fill removed. Updated the
+  DataTable band's own spec paragraph and the shadcn spec-cards band's
+  (5TI-0) DataTable recap paragraph to describe D9-0 instead of the old spec,
+  so no stale text survives pointing at the wrong values.
+  `CalendarGrid` (5PY-0) and `AgendaDayGroup` (5RU-0) verified independently —
+  both correctly still draw their date/weekday headers on `surface-sunken`,
+  confirmed against `CalendarGrid.tsx` / `AgendaDayGroup.tsx`; left untouched,
+  per §10: they are row-group/calendar headers, not data-column headers.
+- **MoneyDisplay minus glyph.** Band showed `−12,000.00` (U+2212 minus sign);
+  `formatMoney()` (`lib/money.ts`) emits an ASCII hyphen. **Decision: the band
+  was wrong, not the code** — `formatMoney()` is the INV-M5 formatting
+  boundary and is explicitly off-limits to this session. Corrected the band's
+  text to `-12,000.00`.
+- **TotalsPanel statcard label.** Band read "Balance computed"; code
+  (`TotalsPanel.tsx`) reads "Balance". **Decision: "Balance" is right** — the
+  three-card row (Invoice total / Paid to date / Balance) already reads as a
+  narrative; "computed" describes an implementation fact (INV-C5) Susan has
+  no reason to see on her own KPI card. Corrected the band's text to
+  "Balance".
+- Every other band (StatusBadge, DocumentStatusBadge/AvailabilityBadge,
+  QuantityInput, DayAvailabilityStrip, ClientPicker/CatalogItemPicker,
+  SearchInput, controls (SegmentedToggle/DateRangeControl/
+  CalendarSpanControl), PageHeader, EmptyState, ConfirmDialog,
+  ConflictBanner, DocumentNoticeBanner, VoiceMicButton, VoiceReviewField,
+  TranscriptPanel, CalendarGrid/EventChip, AgendaDayGroup/AgendaEventRow,
+  shadcn spec cards) — independently screenshotted and compared: **no
+  drift**. In particular confirmed: `PageHeader` has no `capturedAt` chip
+  (matches the follow-up session's DROP decision — `5OJ-0`'s "0:23 ·
+  Deepgram" provenance line is the only capture-time metadata anywhere), and
+  Geist Mono is used for reference-number titles (`INV-2026-0042`).
+
+**Invariants checked (§4) — fresh-eyes pass, source inspection + Paper +
+running gallery, all 28 Tier 2 composites and the 3 blocks:**
+- **INV-M1/M5** — `MoneyDisplay` (`src/components/MoneyDisplay.tsx:1-83`)
+  takes `cents: number | null`, calls `formatMoney()` only at the return
+  boundary, `font-mono tabular-nums` unconditional. `QuantityInput`
+  (`QuantityInput.tsx`) is `font-mono tabular-nums` in both sizes.
+  `PageHeader` reference-number titles render in Geist Mono (confirmed on
+  band `573-0` and in the shell). **Holds.**
+- **INV-P2 / INV-I2** — `LineItemRow` `document` variant
+  (`LineItemRow.tsx`) takes only snapshot props (name, description, qty,
+  unit price, total) with no catalog-id prop in its public API, and its
+  render path has no stepper, no delete, no index column — read-only always,
+  independent of any `disabled` flag. **Holds.**
+- **INV-A6** — `ConflictBanner` (`ConflictBanner.tsx`) has no `href`/`link`
+  prop in either variant and renders no anchor or button — advisory only.
+  `QuantityInput`'s `overAvailable` prop only toggles a border class
+  (`border-warning-solid`); `commit()` still clamps and calls `onChange`
+  normally — entry is never blocked. **Holds.**
+- **INV-I3** — `DocumentNoticeBanner` (`DocumentNoticeBanner.tsx`) takes a
+  required (non-optional) `link: { label; href }` prop and always renders the
+  `<a>` — there is no code path that omits it. **Holds.**
+- **INV-V3** — `TranscriptPanel` (`TranscriptPanel.tsx`) has no
+  collapsed/expanded state, no disclosure control, and always renders the
+  transcript `<p>`; `extractionFailed` only adds a notice above it, never
+  hides it. **Holds.**
+- **INV-V5** — `VoiceReviewField` (`VoiceReviewField.tsx`) flagged state
+  renders a 1px `border-warning-solid`, an uppercase flag label with
+  `TriangleAlertIcon`, and `bg-warning-subtle` — colour is additive to the
+  border+label+icon, never the sole signal; resting state is an unstyled
+  passthrough. **Holds.**
+
+**Violations found: none.** **Resolved: none required** beyond the
+reconciliation above (drift in artboards, not in invariant-bearing behaviour).
+
+**Small token-hygiene fixes made this session** (obviously-wrong constants,
+CLAUDE.md's narrow exception — not a design decision): a handful of Tier 2
+loading/skeleton placeholders referenced primitive tokens instead of the
+semantic layer (`design-system.md` §13.1/§13.2) — `bg-neutral-100` /
+`bg-neutral-200` where the rest of the system uses `bg-surface-sunken`.
+Fixed in `StatusBadge.tsx`, `DayAvailabilityStrip.tsx`, `CalendarGrid.tsx`,
+`internal/searchable-list.tsx`. Left two related but non-trivial cases
+unfixed because they need a real token decision, not a drive-by substitution:
+`QuantityInput.tsx`'s stepper `hover:bg-neutral-100` (no semantic
+"hover-on-sunken" token exists yet) and `text-neutral-0` on solid-colour
+buttons in three files (no semantic "text-on-solid" token distinct from
+`text-on-accent`) — noted, not raised as a §10 item (too small individually;
+folded into the token-scale note below if it recurs).
+
+**§10 decisions (Implementation session table):**
+- **#2 (`pnpm build` not in the gate) — do now, CI-only.** Added a `pnpm
+  build` step (`NODE_ENV=production`) to `.github/workflows/verify.yml`,
+  after the existing `pnpm verify` step. Not folded into local `verify` —
+  the build takes ~70s and would slow the inner loop for no benefit once
+  CI catches it. **Decision: CI-only.**
+- **#3 (no toast story on an unauthenticated surface) — confirmed do in
+  v2.** No new reason surfaced this session to pull it forward; `/sign-in`
+  stays inline-error-only (correct for INV-T4's minimal-surface intent).
+  **Decision: do in v2 (confirmed).**
+- **#4 (bands 58H-0 / 51H-0 pre-D9-0) — RESOLVED this session**, see the
+  reconciliation above.
+- **#5 (pickers compose Popover + SearchableList, not Combobox) — confirmed
+  do in D6.** The reasoning holds: no data layer exists yet to shape the
+  Combobox primitive against, and `SearchableList` is already the isolated
+  seam. **Decision: do in D6 (confirmed)**, alongside the first screen that
+  lists real clients or catalog items.
+
+**Acceptance (§8) — confirmed line by line:**
+- Shell navigable at 390px and 1440px — re-verified live (Playwright): 1440px
+  shows the fixed 240px sidebar; 390px collapses to a hamburger top-bar that
+  opens the full nav as a Sheet drawer. `document.scrollWidth === innerWidth
+  === 390` at the mobile breakpoint — no page-level horizontal scroll (the
+  follow-up session's fix holds).
+- Gallery renders every component in every state (confirmed by the D5
+  visual-diff pass above, which necessarily exercised every section);
+  excluded from production — `src/app/dev/layout.tsx` calls `notFound()`
+  when `NODE_ENV === "production"`, verified by inspection; the follow-up
+  session's live `NODE_ENV=production pnpm build` + request test already
+  confirmed the 404 fires (§7, 2026-09-07 entry). Naming nit: the layout's
+  comment calls it "the (dev) route group" but the segment is the literal
+  path `src/app/dev/` — cosmetic, not a defect (the `notFound()` mechanism
+  itself doesn't depend on route-group parens); left as is, not worth its
+  own §10 line.
+- Tokens confirmed (contentHash `6881a1e6` matches between `globals.css` and
+  the open Paper file — no drift); Tier 1 restyled every state (verified in
+  the follow-up session, spot-checked again here via the gallery); approved
+  Tier 2 set built (all 28, confirmed present in `src/components/` and in
+  `tier2.tsx`); app shell responsive (above).
+- `pnpm verify` passes (32/32 tests, typecheck, lint) after this session's
+  token-hygiene fixes; no invariant test modified; loading/empty/error/
+  populated states all exist (seen throughout the gallery walk above);
+  review found no invariant violations; §10 decisions all recorded (above);
+  §7 complete (this entry).
+
+**Status set to Complete** — see the header of this file and
+`build-plan.md`'s "Current phase" line, both updated by this session.
 ```
 
 ---
@@ -707,25 +980,25 @@ Status set to Complete:
 From `build-plan.md` "PHASE-00B" + "Definition of done", and `design-system.md`
 §1 (D4/D5). Not paraphrased.
 
-- [ ] *(build-plan PHASE-00B / Verify)* Navigate the shell at 390px and 1440px.
-- [ ] *(build-plan PHASE-00B / Verify)* Gallery renders every component in every
+- [x] *(build-plan PHASE-00B / Verify)* Navigate the shell at 390px and 1440px.
+- [x] *(build-plan PHASE-00B / Verify)* Gallery renders every component in every
       state.
-- [ ] *(build-plan PHASE-00B / Build)* Tokens from D1 in `globals.css` as a
+- [x] *(build-plan PHASE-00B / Build)* Tokens from D1 in `globals.css` as a
       Tailwind v4 `@theme` block — confirmed against the Paper theme.
-- [ ] *(build-plan PHASE-00B / Build)* Tier 1 primitives restyled against the
+- [x] *(build-plan PHASE-00B / Build)* Tier 1 primitives restyled against the
       tokens, starting from the shadcn sidebar block for the shell.
-- [ ] *(build-plan PHASE-00B / Build)* The approved Tier 2 composites from D3.
-- [ ] *(build-plan PHASE-00B / Build)* `/dev/gallery` with every component in
+- [x] *(build-plan PHASE-00B / Build)* The approved Tier 2 composites from D3.
+- [x] *(build-plan PHASE-00B / Build)* `/dev/gallery` with every component in
       every state as a forced-state instance, excluded from production.
-- [ ] *(build-plan PHASE-00B / Build)* App shell and navigation, responsive.
-- [ ] *(design-system §1 D4)* shadcn primitives restyled against the tokens +
+- [x] *(build-plan PHASE-00B / Build)* App shell and navigation, responsive.
+- [x] *(design-system §1 D4)* shadcn primitives restyled against the tokens +
       the approved composites + the gallery.
-- [ ] *(design-system §1 D5)* Gallery exported to Paper over MCP; fidelity
+- [x] *(design-system §1 D5)* Gallery exported to Paper over MCP; fidelity
       verified against gallery screenshots for 3–4 components; any drift against
       the D3 artboard `4U2-0` reconciled once, here.
-- [ ] *(ui-conventions §1)* Every §12-promoted composite has its consequence 3
+- [x] *(ui-conventions §1)* Every §12-promoted composite has its consequence 3
       satisfied (Tier-2 build + gallery entry) — until then it is only proposed.
-- [ ] *(Definition of done)* `pnpm verify` passes; no invariant test modified;
+- [x] *(Definition of done)* `pnpm verify` passes; no invariant test modified;
       loading / empty / error / populated states all exist (in the gallery and
       the shell); the review pass found no violations; §10 decisions all
       recorded; §7 complete; **Current phase** in `build-plan.md` updated.
@@ -774,7 +1047,7 @@ action), `/q/[token]` bare frame (#5, D6).
 > Cost: S · Recommendation: do now — §6.5 lists the candidate mechanisms
 > (`notFound()` on `NODE_ENV==='production'`, env-gated segment, build-time
 > exclusion); the implementer picks one and records it in §7.
-> **Decision:** —
+> **Decision:** RESOLVED (Session 2) — see the summary table above.
 
 > **[IMPROVEMENT] Gallery needs a forced-state CSS convention decided once**
 > The gallery renders `data-force-state="hover"` as *static* instances, but
@@ -787,15 +1060,17 @@ action), `/q/[token]` bare frame (#5, D6).
 > route. Small if done during the Tier 1 restyle; a rewrite if bolted on after.
 > Cost: S · Recommendation: do now — fold into §6.2 as the primitives are
 > restyled.
-> **Decision:** —
+> **Decision:** RESOLVED (Session 2) — see the summary table above.
 
 ### Implementation session
 
 | # | Type | Title | Cost | Recommendation | Decision |
 |---|---|---|---|---|---|
-| 1 | GAP | The 28 Tier 2 composites (§5.3) + their gallery bands are unbuilt | L | do next — a dedicated PHASE-00B follow-up session before D6 | — |
-| 2 | IMPROVEMENT | `pnpm build` was broken on `main` and `pnpm verify` never catches it | S | do now — add `build` to the gate, or a CI build step | — |
-| 3 | GAP | Sonner/Toaster is mounted in the root layout, so `/sign-in` and `/dev/gallery` share the app's toast region — fine now, but there is no story for a toast fired from an unauthenticated surface | S | do in v2 | — |
+| 1 | GAP | The 28 Tier 2 composites (§5.3) + their gallery bands are unbuilt | L | do next — a dedicated PHASE-00B follow-up session before D6 | **RESOLVED** (follow-up, 2026-09-08) — all 28 built from Tier 1, semantic tokens only; `tier2.tsx` gallery covers every state + variant axis; `pnpm verify` + `pnpm build` pass; section-by-section visual diff vs. bands 4U7-0…5RU-0 done. Recorded §7. |
+| 2 | IMPROVEMENT | `pnpm build` was broken on `main` and `pnpm verify` never catches it | S | do now — add `build` to the gate, or a CI build step | **DONE** (D5) — `pnpm build` (`NODE_ENV=production`) added as a CI step in `.github/workflows/verify.yml`, after `pnpm verify`. Not added to local `verify` (too slow for the inner loop). |
+| 3 | GAP | Sonner/Toaster is mounted in the root layout, so `/sign-in` and `/dev/gallery` share the app's toast region — fine now, but there is no story for a toast fired from an unauthenticated surface | S | do in v2 | **CONFIRMED** (D5) — do in v2, no new reason to pull forward. |
+| 4 | GAP | Bands 58H-0 (DataTable) + 51H-0 (LineItemRow) show the pre-D9-0 header style; code now uses the D9-0 revision (blue-wash band, `--color-table-header-border` rule, 12/500 normal-case labels, sharp corners, no zebra) | S | reconcile in D5 — update the two bands to the D9-0 treatment (code is source of truth from D1 on) | **RESOLVED** (D5) — both bands, plus the DataTable spec-card recap on 5TI-0, updated to the D9-0 treatment. Recorded §7. |
+| 5 | IMPROVEMENT | Pickers compose `Popover` + internal `SearchableList`, not the base-ui `Combobox` primitive §5.3 names | M | do in D6 — swap `SearchableList`'s internals to the Combobox primitive when real client/catalog queries exist; the seam is already isolated | **CONFIRMED** (D5) — do in D6, alongside the first real client/catalog screen. |
 
 **Details**
 
@@ -811,7 +1086,7 @@ action), `/q/[token]` bare frame (#5, D6).
 > `4U2-0` bands open. The contract in §5 is unchanged and still governs it.
 > Cost: L · Recommendation: do next — a PHASE-00B follow-up before D6, same
 > phase file, appending to §7.
-> **Decision:** —
+> **Decision:** RESOLVED (follow-up, 2026-09-08) — see the summary table above.
 
 > **[IMPROVEMENT] `pnpm build` is not in the gate**
 > `pnpm verify` is typecheck + lint + test. `pnpm build` (Turbopack,
@@ -822,7 +1097,10 @@ action), `/q/[token]` bare frame (#5, D6).
 > slow (~70s) so maybe not in the local inner loop, but CI should run it and
 > the phase's own acceptance depends on it.
 > Cost: S · Recommendation: do now — `verify` or CI gains a build step.
-> **Decision:** —
+> **Decision:** DONE (D5) — `pnpm build` (`NODE_ENV=production`) added as a
+> step in `.github/workflows/verify.yml`, after `pnpm verify`. CI-only: a
+> local build is ~70s and would slow the inner loop for no benefit once CI
+> catches regressions.
 
 > **[GAP] No story for a toast on an unauthenticated surface**
 > `Toaster` is in the root `app/layout.tsx`, so `/sign-in` can technically
@@ -831,9 +1109,50 @@ action), `/q/[token]` bare frame (#5, D6).
 > it so a future "check your email" style flow on an unauthenticated screen
 > doesn't quietly reach for a toast with no design.
 > Cost: S · Recommendation: do in v2.
-> **Decision:** —
+> **Decision:** CONFIRMED (D5) — do in v2. No new reason surfaced to pull it
+> forward.
+
+> **[GAP] Table-header treatment drifted from the Paper bands (D9-0 revision)**
+> A design revision (user, 2026-09-08) reworked the `DataTable` column-header
+> row: `--color-table-header` blue-grey wash, a heavier `--color-table-header-border`
+> bottom rule, 12/500 normal-case `text-primary` labels (was 11/600 uppercase
+> muted), sharp container corners, and no zebra striping on body rows. The
+> `LineItemRow` quote/document header in the gallery follows this now, for one
+> consistent system. Bands **58H-0** (DataTable) and **51H-0** (LineItemRow)
+> still show the old style. `design-system.md` §1 makes code the source of
+> truth for tokens from D1 on, and this is a token-driven visual decision, so
+> the bands should move — not the code. `CalendarGrid`'s weekday header and
+> `AgendaDayGroup`'s date header are intentionally left on `surface-sunken`:
+> they are row-group / calendar headers, not data-column headers, and their
+> bands (5PY-0 / 5RU-0) draw them sunken.
+> Cost: S · Recommendation: reconcile the two bands in D5.
+> **Decision:** RESOLVED (D5) — both bands (plus the DataTable recap on the
+> shadcn spec-cards band, 5TI-0) updated to the D9-0 treatment. Recorded §7.
+
+> **[IMPROVEMENT] Pickers are `Popover` + `SearchableList`, not `Combobox` base**
+> §5.3 specifies the shadcn/base-ui `Combobox` as the base for `ClientPicker` /
+> `CatalogItemPicker`. With no data layer in this phase there is no item
+> collection or async filter to shape that primitive against, and wiring it
+> blind risked baking in the wrong contract. The three pickers instead compose
+> the restyled `Popover` with one internal `SearchableList` (§5.4) that owns
+> the search row, roving keyboard nav, and the loading / empty / create /
+> no-match states — the visual + interaction contract from bands 5D6-0 / 5AO-0
+> is met. `SearchableList` is the single seam: D6 swaps its internals to the
+> `Combobox` primitive when real client/catalog repository queries exist,
+> without touching the three call sites.
+> Cost: M · Recommendation: do in D6, alongside the first screen that lists
+> real clients or catalog items.
+> **Decision:** CONFIRMED (D5) — do in D6. The seam (`SearchableList`) is
+> already isolated; no reason to force it earlier with no data layer to
+> shape it against.
 
 ### Review session (D5)
+
+No new recommendations. This session's job was fidelity-checking the gallery,
+reconciling artboard `4U2-0` against code, running the invariant review, and
+deciding the five items already carried in the Implementation-session table
+above (see their Decision columns) — nothing surfaced that wasn't already on
+the table.
 
 | # | Type | Title | Cost | Recommendation | Decision |
 |---|---|---|---|---|---|

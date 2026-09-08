@@ -1,8 +1,8 @@
 # Build Plan
 
-**Current phase:** PHASE-00B (in progress — D4 vertical slice landed 2026-09-07;
-Tier 2 composite set + D5 review still open)
-**Last updated:** 2026-09-07
+**Current phase:** PHASE-01 · Clients, catalog and availability (PHASE-00B
+complete — design system in code, D4/D5, 2026-09-08)
+**Last updated:** 2026-09-08
 
 > Update the line above when a phase completes. Every agent session reads it to
 > know where the project stands.

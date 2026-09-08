@@ -142,8 +142,8 @@ export function StatusBadge({
         aria-hidden
         className={cn("inline-flex items-center gap-1.5", className)}
       >
-        <span className="size-1.5 shrink-0 rounded-full bg-neutral-200" />
-        <span className="inline-block h-2.5 w-11 rounded-sm bg-neutral-200" />
+        <span className="size-1.5 shrink-0 rounded-full bg-surface-sunken" />
+        <span className="inline-block h-2.5 w-11 rounded-sm bg-surface-sunken" />
       </span>
     )
   }

@@ -59,8 +59,8 @@ export function DayAvailabilityStrip({
             key={i}
             className="flex w-16 shrink-0 flex-col items-center gap-0.5 rounded-md border border-border px-1 py-2"
           >
-            <span className="h-2 w-8 rounded-sm bg-neutral-200" />
-            <span className="h-2.5 w-4 rounded-sm bg-neutral-200" />
+            <span className="h-2 w-8 rounded-sm bg-surface-sunken" />
+            <span className="h-2.5 w-4 rounded-sm bg-surface-sunken" />
           </div>
         ))}
       </div>
