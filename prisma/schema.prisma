@@ -1,0 +1,136 @@
+// Prisma schema — the executable source of truth (data-model.md).
+// This phase (00A) is limited to Organization, User, Membership, and the
+// Better Auth tables. No business tables yet.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy and identity (data-model.md §1)
+// ---------------------------------------------------------------------------
+
+/// The business. One row in v1.
+model Organization {
+  id                     String   @id @default(cuid())
+  name                   String
+  phone                  String
+  email                  String
+  addressLine            String
+  logoStorageKey         String?
+  defaultCurrency        String   @default("KES")
+  quoteValidityDays      Int      @default(14)
+  depositDefaultPercent  Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+
+  @@map("organization")
+}
+
+enum MemberRole {
+  OWNER
+  STAFF
+}
+
+/// Joins a user to an organisation. Business records belong to the
+/// organisation, not to a user (system-overview.md §6) — this is what makes
+/// adding a second office user a configuration change, not a migration.
+model Membership {
+  id             String     @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MemberRole @default(OWNER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("membership")
+}
+
+// ---------------------------------------------------------------------------
+// Better Auth tables. Login identity only — carries no business data
+// (data-model.md §1). Shape follows Better Auth's Prisma adapter schema.
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions    Session[]
+  accounts    Account[]
+  memberships Membership[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  // Better Auth 1.7's synthetic issuer: "local:<providerId>" for
+  // password/local providers, "local:oauth:<providerId>" for OAuth ones
+  // without an issuer of their own. Required — sign-in matches on it
+  // alongside providerId + accountId.
+  issuer                String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@map("verification")
+}

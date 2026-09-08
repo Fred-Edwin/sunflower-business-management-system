@@ -367,6 +367,154 @@ check §10 first — do not re-raise parked items #3/#5 from D3-worklog).
 
 ---
 
+## 6b. Handoff — Tier 2 composites (follow-up implementation session)
+
+> Session 2 (2026-09-07) took the vertical slice: §6.1 tokens, §6.2 Tier 1,
+> §6.3 the three blocks, §6.6 the app shell, and a §6.5 gallery covering only
+> Tier 1 + the blocks. This session finishes §6.4 — the 28 Tier 2 composites —
+> and extends the gallery to cover them. §7 has the full slice work log; §10
+> "Implementation session" #1 is this gap.
+
+```
+You are the implementation agent for the PHASE-00B FOLLOW-UP of the Sunflower
+Events system — the Tier 2 composite set (design stage D4, remainder).
+
+Read CLAUDE.md, then docs/delivery/phases/PHASE-00B.md IN FULL, paying
+attention to §5.3 (the composite contract), §5.4 (folded-in decisions), §5.5
+(the gallery state matrix), §7 (what the vertical slice already built and
+why), and §10 (do not re-raise anything already there).
+
+Read from §3 only: domain-invariants.md §1 + §9, coding-standards.md §2/§7/§8/
+§10/§13, design-system.md §2/§3–11/§13, ui-conventions.md §1 (THE BUILD LIST)
++ §2/§4/§7, inventory-availability.md §7.
+
+PAPER: file 01M1X43Q66HDD6TF72TYYWH3KE, page "D3 — Components", artboard
+"D3 — Components (Approved Composite Set)" id 4U2-0. Each composite has a
+drawn band there in every state. Call get_guide({topic:"paper-mcp-instructions"})
+once, then get_jsx on a band for its EXACT values — never read them off a
+screenshot. Band IDs:
+  4U7-0 StatusBadge · 4X8-0 MoneyDisplay · 4Y0-0 QuantityInput ·
+  4YY-0 AvailabilityBadge · 500-0 DayAvailabilityStrip · 51H-0 LineItemRow ·
+  573-0 PageHeader · 58H-0 DataTable · 5AO-0 Controls (SegmentedToggle /
+  DateRangeControl / CalendarSpanControl / SearchInput) · 5D6-0 Pickers
+  (ClientPicker / CatalogItemPicker) · 5ES-0 TotalsPanel · 5G9-0 EmptyState ·
+  5HH-0 ConfirmDialog · 5IX-0 ConflictBanner · 5JT-0 DocumentNoticeBanner ·
+  5KU-0 VoiceMicButton · 5M5-0 VoiceReviewField · 5NC-0 VoiceQueueIndicator ·
+  5OJ-0 TranscriptPanel · 5PY-0 CalendarGrid + EventChip ·
+  5RU-0 AgendaDayGroup + AgendaEventRow · 5TI-0 shadcn block spec cards.
+Do NOT edit Paper. Read only. Drift you spot goes to §10, not a Paper edit —
+that is the D5 orchestrator session's call.
+
+STATE OF THE CODE (branch phase-00b, all uncommitted):
+- Tokens: src/styles/globals.css — confirmed against Paper, do not touch
+  except a genuine value mismatch (record in §7). `--color-ring` and the
+  forced-state @custom-variant blocks were added by the slice — leave them.
+- Tier 1: src/components/ui/ — all 24 primitives token-styled, every state.
+  Plus date-picker.tsx (Calendar-in-Popover) and sidebar.tsx (trimmed block).
+  Compose from these. Do not restyle them.
+- Blocks (Tier 2, done): src/components/{AppSidebar,AppShellTopBar,LoginForm,
+  DataTable,VoiceQueueIndicator}.tsx. DataTable.tsx is the premium table +
+  card-projection contract over a plain typed column model — NO
+  @tanstack/react-table yet (add it only if a composite you build needs the
+  sort/selection plumbing, and record why in §7). VoiceQueueIndicator.tsx is
+  already built — the shell needed it.
+- Gallery: src/app/dev/gallery/{page,gallery-shell,tier1,blocks}.tsx.
+  gallery-shell.tsx exports <GallerySection> and <StateRow> — reuse them.
+  The route is at src/app/dev/ (literal /dev/gallery), excluded from prod by
+  src/app/dev/layout.tsx (notFound() when NODE_ENV==="production"). Add a
+  tier2.tsx sibling and render it from page.tsx.
+- Forced-state: `data-force-state="hover" | "focus" | "active"` on any element
+  makes globals.css fire that primitive's real state rule. `disabled` /
+  `aria-invalid` / Radix `data-state` are set as real attributes/props in the
+  gallery. Do NOT force-mount a Radix Select/Dialog/Sheet `open` in the
+  gallery — it locks body scroll. Show trigger states live; open one to see
+  the panel.
+
+WHAT TO BUILD — every row of PHASE-00B §5.3, built from Tier 1, SEMANTIC
+TOKENS ONLY (a primitive token like `--color-neutral-900` or a raw hex in a
+Tier 2 file is a defect — design-system.md §13.1/§13.2). One component per
+file, PascalCase file + export, in src/components/. Server Components unless
+state/effects/browser APIs are needed; 'use client' as low as possible.
+No barrel file. No import from @/modules/* (none exist).
+
+  Money & quantity   MoneyDisplay, QuantityInput
+  Status             StatusBadge, DocumentStatusBadge, AvailabilityBadge
+  Availability       DayAvailabilityStrip
+  Pickers            ClientPicker, CatalogItemPicker, SearchInput
+                     + one internal SearchableList (NOT a public composite —
+                       src/components/internal/searchable-list.tsx or
+                       co-located; §5.4)
+  Documents          LineItemRow (quote|document|voice), TotalsPanel
+                     (ledger|statcards), PageHeader, EmptyState, ConfirmDialog
+  Banners            ConflictBanner, DocumentNoticeBanner  (two components —
+                     do NOT merge)
+  Voice              VoiceMicButton, VoiceReviewField, TranscriptPanel
+  Calendar           SegmentedToggle, DateRangeControl, CalendarSpanControl,
+                     CalendarGrid, EventChip, AgendaDayGroup, AgendaEventRow
+
+INVARIANTS TO ENFORCE AT THE COMPONENT LEVEL (§4 — no data layer exists):
+  INV-M1/M5  MoneyDisplay takes `cents: number | null`, never a pre-formatted
+             string; calls formatMoney() (lib/money.ts) INTERNALLY, at the
+             render boundary only; font-variant-numeric: tabular-nums always;
+             Geist Mono. States: positive, zero, negative (credit), null
+             (em dash), loading.
+  INV-M5     QuantityInput tabular-nums; PageHeader uses Geist Mono for
+             reference numbers.
+  INV-P2     LineItemRow document/quote variants take snapshot values as
+             props — the component API implies NO catalog lookup.
+  INV-I2     LineItemRow document variant is read-only ALWAYS — no editable
+             control, no delete.
+  INV-A6     ConflictBanner and QuantityInput over-availability state WARN
+             visually; neither disables input or submission; ConflictBanner
+             carries NO forward link.
+  INV-I3     DocumentNoticeBanner ALWAYS renders the forward-link button.
+  INV-V3     TranscriptPanel has no collapsed state — transcript inline in
+             every state, including extraction-failed.
+  INV-V5     VoiceReviewField flag = 1px warning border + uppercase label +
+             triangle icon; colour is additive, never alone.
+
+FOLDED-IN DECISIONS (§5.4):
+  - PageHeader `capturedAt?: string` slot — implement it (12px muted mono
+    pill), OR decide the transcript panel's "0:23 · Deepgram" line already
+    covers it and DROP it. Record which in §7.
+  - SearchableList shared by the 3 pickers — one internal helper, not exported.
+
+DAYAVAILABILITYSTRIP — worst-day encoding EXACTLY per inventory-availability.md
+§7: worst day = the byDay entry whose available === minAvailable (ties →
+earliest day). That cell is tinted warning-subtle when its availability <
+checkedQuantity, success-subtle otherwise, plus a border-strong outline.
+Every other cell untinted. Own overflow-x:auto container; page body never
+scrolls horizontally. It is the DataTable `wide:true` region.
+
+GALLERY — extend src/app/dev/gallery with a tier2.tsx section per the §5.5
+matrix: every state (resting · hover · focus · disabled · active ·
+aria-invalid/error · loading · empty · long-content overflow · every Radix
+data-state) PLUS each component's own variant axis (StatusBadge × 19 status
+values × 3 domains; LineItemRow × 3 variants; TotalsPanel × 2 layouts; etc.).
+Separate static instances, forced-state props, not real interaction.
+
+VERIFY: `pnpm verify` must pass (typecheck + lint + test). Do not disable a
+check or modify an invariant test. Also run `pnpm build` — the slice found it
+was broken on main and verify does not catch it (§10 Implementation #2).
+Then run the app (docker compose up -d db && pnpm dev — DB is already
+migrated + seeded; login susan@sunflowerevents.example /
+sunflower-dev-password) and screenshot /dev/gallery to confirm every new
+section renders and the page scrolls.
+
+CLOSE:
+  - Append a work log to §7: what was built, the capturedAt decision, any
+    @tanstack/react-table addition + reason, any globals.css fix, any
+    deviation from §5.3.
+  - §10 "Implementation session" table: mark #1 (the Tier 2 gap) RESOLVED;
+    add any NEW recommendation (max 5 total, ranked; check §10 first — the
+    parked D3 items #3/#5 and the resolved orchestrator #1/#2 stay as they
+    are).
+  - Do NOT run D5 — that is the separate orchestrator session (§6 planning
+    entry, "Session 3"). Leave Status: Planning.
+```
+
+---
+
 ## 7. Status log
 
 Append-only. This is the handoff mechanism and it survives context loss.
@@ -398,13 +546,149 @@ Carried D3-worklog recommendations folded into the contract:
 
 Gap analysis: no material gap found that blocks the work. Two items go to §10.
 
-### <date> · Implementation (Session 2)
-Completed:
-Contract changes (recorded here first):
-Deviations from plan, and why:
-capturedAt slot — implemented / dropped (which, and why):
-/dev/gallery production-exclusion mechanism used:
-Dependencies added (if any) and the reason:
+### 2026-09-07 · Implementation (Session 2) — vertical slice
+
+**Scope taken (user decision, this session): the vertical slice.** §6.1 tokens,
+§6.2 Tier 1, §6.3 the three blocks, §6.5 gallery (Tier 1 + blocks), §6.6 app
+shell. The 28 Tier 2 composites in §5.3 and their gallery bands are **deferred to
+a PHASE-00B follow-up session** — see §10 item 1. Susan's real flow
+(sign-in → shell → home, responsive) is delivered.
+
+**Completed:**
+- §6.1 Tokens confirmed. `globals.css` `@theme` vs the Paper theme
+  (`contentHash.tokens` `72796a7d`) — equivalent for every category Paper
+  carries. Code-only tokens (motion, elevation, density, focus-ring,
+  per-step type metrics) present and correct. **No drift, no token added.**
+  Matches the orchestrator's pre-verification in the §7 planning entry.
+- §6.2 Tier 1. The 24-name list was already restyled to tokens in a prior
+  pass (file mtimes 2026-09-07 09:00–09:23 — `components.json` `style:
+  "radix-nova"`, `-b radix` base per PHASE-00A decision 8). This session:
+  audited every primitive against the state matrix (§5.5); added the shared
+  **forced-state convention** (§10 item 2 — resolved) so `data-force-state`
+  in the gallery drives the same rule as the real pseudo-class; added
+  `date-picker.tsx` (Calendar-in-Popover); confirmed the Sonner theme is
+  tokenised (that is `Toast`). Raw values remaining in Tier 1
+  (`bg-black/10` scrims, `bg-neutral-900` tooltip, `bg-neutral-100`
+  skeletons) are **permitted in Tier 1** by `ui-conventions.md` §9.2 / §2
+  ("no raw hex outside `globals.css` and Tier 1") — §13.1/§13.2 bind Tier 2.
+  Left as-is.
+- §6.3 The three blocks, built as Tier 2 in `src/components/`:
+  `app-sidebar.tsx` + `sidebar.tsx` (primitive), `login-form.tsx`,
+  `data-table.tsx`. Restyled to the spec-cards band (`5TI-0`) and the
+  DataTable band (`58H-0`), pulled with `get_jsx`. No `@tanstack/react-table`
+  — see Dependencies below.
+- §6.5 `/dev/gallery` — every Tier 1 primitive and the three blocks in every
+  applicable state as forced-state instances.
+- §6.6 App shell at `src/app/(app)/layout.tsx`; `/sign-in` rewired to
+  `login-form.tsx`; `/` restyled, plain. Nav links: Home only (no
+  destinations exist yet). Responsive: Sidebar → Sheet below `md`, hamburger
+  in the shell top-bar.
+
+**Contract changes (recorded here first):** none. The §5 inventory is
+unchanged; the deferred composites are still the contract, just not built
+this session.
+
+**capturedAt slot:** not reached — `PageHeader` is a deferred Tier 2
+composite. The §5.4 decision (implement or drop) moves to the follow-up
+session with the rest of Tier 2.
+
+**/dev/gallery production-exclusion mechanism used:** the route segment
+group `src/app/(dev)/` with a layout that calls `notFound()` when
+`process.env.NODE_ENV === "production"`. It still sits behind the existing
+auth middleware. §10 item 1 from the orchestrator's gap analysis — resolved.
+
+**globals.css fixes recorded (§6.1 says any genuine mismatch is fixed here):**
+- `--color-ring: var(--color-border-focus)` added. Not a design token — the
+  scaffold's own base layer (`* { @apply … outline-ring/50 }`) referenced a
+  `ring` colour that was never defined; dev (Lightning CSS) tolerated it, the
+  Turbopack **production** build failed on it (`Cannot apply unknown utility
+  class outline-ring/50`). `pnpm build` was already broken on `main` before
+  this session. Aliased to the one focus hue so it stays single-sourced
+  (design-system.md §10). No Paper equivalent needed.
+- Forced-state convention (below) added as three `@custom-variant` extensions.
+
+**Forced-state CSS convention (§10 orchestrator IMPROVEMENT #2 — resolved):**
+`globals.css` extends the built-in `hover` / `focus-visible` / `active`
+variants so each ALSO matches `&[data-force-state="…"]`. One rule serves both
+the real pseudo-class and the gallery's static instance — a primitive's
+`hover:` utility fires for `data-force-state="hover"` with no separate
+styling to drift. `disabled` / `aria-invalid` / Radix `data-state` are set as
+real attributes in the gallery, so they need no alias. Verified in the
+running gallery: the Button band's six columns (resting / hover / focus /
+active / disabled / aria-invalid) each render distinctly.
+
+**Dependencies added:** none. `@tanstack/react-table` was **not** added — the
+vertical slice has no screen that renders a real `DataTable` yet, and the
+sort/selection plumbing has no consumer to exercise it. `data-table.tsx`
+ships the premium styling + the card-projection contract (the parts that are
+"ours" per §5.2) over a plain typed column model; the follow-up session adds
+`@tanstack/react-table` when a real table screen (D6/PHASE-01) needs the
+plumbing. Recorded so the choice is visible, not silent.
+
+**Live verification (this session):** `pnpm verify` passes (typecheck + lint +
+32/32 tests). `pnpm build` (NODE_ENV=production) passes; an unauthenticated
+request to `/dev/gallery` 307s to `/sign-in` (middleware), and the `(dev)`
+`notFound()` fires for a signed-in prod request. Playwright MCP at 1440px:
+`/sign-in` restyled, sign-in with the seeded credentials → `/` in the shell
+(240px ink-gradient sidebar, ghost-underline active "Home", footer
+Voice-capture pill + user row + sign-out). At 390px: sidebar → Sheet,
+hamburger top-bar opens the full ink-gradient drawer. Gallery renders every
+Tier 1 primitive + the 3 blocks; the Button band's forced-state columns
+(resting / hover / focus / active / disabled / aria-invalid) render
+distinctly. **Not done this session:** the D5 Paper export/reconcile
+(Session 3), the deferred Tier 2 composites (follow-up).
+
+**Files touched:** `globals.css`; new `components/ui/{sidebar,date-picker}.tsx`;
+new `components/{AppSidebar,AppShellTopBar,LoginForm,DataTable,VoiceQueueIndicator}.tsx`;
+new `app/(app)/layout.tsx`, new `app/dev/layout.tsx` +
+`app/dev/gallery/{page,tier1,blocks,gallery-shell}.tsx`; edited
+`app/(app)/{page,sign-out-button}.tsx`, `app/(auth)/sign-in/page.tsx`;
+deleted `app/(auth)/sign-in/sign-in-form.tsx`.
+
+### 2026-09-08 · Tier 1 fidelity pass + DataTable D9-0 revision
+
+**Tier 1 fidelity pass** (user asked for a real visual diff against Paper, not
+"built to spec"). Full record: `docs/delivery/PHASE-00B-tier1-fidelity.md`.
+Pulled reference values from Paper (spec-card `5TI-0`, D2 screens `HA-0` /
+`1U2-0`, ConfirmDialog band `5HH-0`), diffed each primitive, applied fixes,
+verified against browser-computed styles:
+- `Button` default 32→36px / pad 10→14px (designed default = code's old `lg`);
+  `sm`/`lg`/`icon*` pinned to `--control-h-*` tokens.
+- `DatePicker` trigger `size="lg"`→`"default"` (40→36px).
+- `FormLabel` 14px → 12/500/text-secondary; `FormItem` gap 8→6px; base
+  `Label` (inline) 14→13px.
+- `Switch` thumb 16→14px, track 18.4→18px + 2px inset, thumb `bg-neutral-0`.
+- `Dialog` padding 16→20px (+ footer/close offsets), `DialogTitle` weight
+  500→600 / line-height 22.
+- Primitives with **no Paper reference** (checkbox, radio, popover, tooltip,
+  dropdown, calendar, scrollarea, separator, skeleton, sonner) verified
+  token-consistent; listed in the fidelity doc for the D5 pass.
+- **Radius inconsistency in the design** flagged: QB toolbar buttons draw 4px,
+  ConfirmDialog / login-form controls draw 6px (not a token). Code uses
+  `--radius-md` (4px) per design-system §6. D5 to ratify or add a step.
+
+**DataTable — D9-0 revision** (user redesigned the table, Paper `1-0/D9-0`,
+2026-09-08). Sharp corners (no container radius), header on a new
+`--color-table-header` blue-grey wash with a heavier `--color-table-header-border`
+(neutral-700) bottom rule, header labels 12/500/normal-case/text-primary
+(was 11/600/uppercase), **zebra striping removed**. Mobile card projection
+unchanged (keeps rounded corners + uppercase field-label captions).
+- **New tokens** added to `globals.css` AND the Paper theme (kept in sync;
+  `contentHash.tokens` `72796a7d` → `6881a1e6`): `--color-blue-grey-100`
+  (primitive), `--color-table-header` (semantic surface), `--color-table-header-border`
+  (semantic border). This is the phase's first token addition — recorded here
+  per §6.1.
+- `ui-conventions.md` §1 DataTable entry updated.
+- **Paper D3 spec-card `58H-0` is now stale** — it still shows the old
+  surface-sunken header / uppercase labels / radius. D5 reconciles it (or the
+  band is re-drawn) since D9-0 supersedes it.
+
+**Tier 2 gallery scroll-lock — FIXED.** `src/app/dev/gallery/tier2.tsx`
+force-mounted two `ConfirmDialog`s with `open`, which locked body scroll and
+froze the whole gallery (the §6b handoff warned against exactly this). Swapped
+the two `open` instances for a static `ConfirmDialogPanelPreview` (gallery-only
+div mirroring the panel); the resting state still opens a real dialog from its
+trigger. Verified the page scrolls, 0 mounted overlays.
 
 ### <date> · Orchestrator — D5 + review (fresh session)
 Fidelity check (3–4 gallery components exported to Paper vs. running-gallery
@@ -475,8 +759,8 @@ action), `/q/[token]` bare frame (#5, D6).
 
 | # | Type | Title | Cost | Recommendation | Decision |
 |---|---|---|---|---|---|
-| 1 | GAP | `/dev/gallery` production-exclusion mechanism is unspecified | S | do now (in this phase) | — |
-| 2 | IMPROVEMENT | Gallery needs a forced-state CSS convention decided once | S | do now (in this phase) | — |
+| 1 | GAP | `/dev/gallery` production-exclusion mechanism is unspecified | S | do now (in this phase) | **RESOLVED** (Session 2) — `src/app/dev/layout.tsx` calls `notFound()` when `NODE_ENV === "production"`; still behind auth middleware. Recorded §7. |
+| 2 | IMPROVEMENT | Gallery needs a forced-state CSS convention decided once | S | do now (in this phase) | **RESOLVED** (Session 2) — `globals.css` extends the `hover` / `focus-visible` / `active` variants to also match `&[data-force-state="…"]`; one rule serves both. Verified in the running gallery. Recorded §7. |
 
 **Details**
 
@@ -509,7 +793,45 @@ action), `/q/[token]` bare frame (#5, D6).
 
 | # | Type | Title | Cost | Recommendation | Decision |
 |---|---|---|---|---|---|
-| | | | | | |
+| 1 | GAP | The 28 Tier 2 composites (§5.3) + their gallery bands are unbuilt | L | do next — a dedicated PHASE-00B follow-up session before D6 | — |
+| 2 | IMPROVEMENT | `pnpm build` was broken on `main` and `pnpm verify` never catches it | S | do now — add `build` to the gate, or a CI build step | — |
+| 3 | GAP | Sonner/Toaster is mounted in the root layout, so `/sign-in` and `/dev/gallery` share the app's toast region — fine now, but there is no story for a toast fired from an unauthenticated surface | S | do in v2 | — |
+
+**Details**
+
+> **[GAP] The 28 Tier 2 composites are unbuilt**
+> The vertical slice delivered §6.1–§6.3 + §6.6 + a Tier-1/blocks gallery.
+> `ui-conventions.md` §1's approved set — MoneyDisplay, StatusBadge family,
+> DayAvailabilityStrip, the pickers + shared `SearchableList`, LineItemRow,
+> TotalsPanel, PageHeader (+ the §5.4 `capturedAt` decision), EmptyState,
+> ConfirmDialog, the two banners, the five voice composites, and the eight
+> calendar/agenda composites — is still only *proposed* (§12 consequence 3
+> unmet). D6 screens compose these; none can be built until they exist. This
+> is the bulk of the phase and needs its own session with the artboard
+> `4U2-0` bands open. The contract in §5 is unchanged and still governs it.
+> Cost: L · Recommendation: do next — a PHASE-00B follow-up before D6, same
+> phase file, appending to §7.
+> **Decision:** —
+
+> **[IMPROVEMENT] `pnpm build` is not in the gate**
+> `pnpm verify` is typecheck + lint + test. `pnpm build` (Turbopack,
+> `NODE_ENV=production`) fails on CSS that dev's Lightning CSS tolerates —
+> this session hit `outline-ring/50` with no `--color-ring`, a defect that
+> predates the branch and would have shipped. The gallery's production
+> exclusion (§8, §9 step 6) can only be checked by a real build. A build is
+> slow (~70s) so maybe not in the local inner loop, but CI should run it and
+> the phase's own acceptance depends on it.
+> Cost: S · Recommendation: do now — `verify` or CI gains a build step.
+> **Decision:** —
+
+> **[GAP] No story for a toast on an unauthenticated surface**
+> `Toaster` is in the root `app/layout.tsx`, so `/sign-in` can technically
+> fire one, but nothing designs for it and the sign-in error is inline text
+> (correct — INV-T4 keeps that surface minimal). Not a problem today; noting
+> it so a future "check your email" style flow on an unauthenticated screen
+> doesn't quietly reach for a toast with no design.
+> Cost: S · Recommendation: do in v2.
+> **Decision:** —
 
 ### Review session (D5)
 

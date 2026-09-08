@@ -1,0 +1,284 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Forced-state convention for /dev/gallery (ui-conventions.md §2, PHASE-00B
+ * §5.5, §10 IMPROVEMENT "forced-state CSS convention decided once" — resolved).
+ *
+ * The gallery renders each state as a STATIC instance — no real pointer hovers,
+ * no real focus lands. Extending the built-in `hover` / `focus-visible` /
+ * `active` variants so they ALSO match `[data-force-state="…"]` means the
+ * forced instance and the real interaction are styled by ONE rule: every
+ * `hover:` / `focus-visible:` / `active:` utility a primitive already carries
+ * fires for the forced instance too. `disabled` and `aria-invalid` are real DOM
+ * state, set as actual attributes in the gallery — no alias needed. Radix
+ * `data-[state=…]` values are likewise set as real props there.
+ */
+@custom-variant hover {
+  &:hover {
+    @slot;
+  }
+  &[data-force-state="hover"] {
+    @slot;
+  }
+}
+@custom-variant focus-visible {
+  &:focus-visible {
+    @slot;
+  }
+  &[data-force-state="focus"] {
+    @slot;
+  }
+}
+@custom-variant active {
+  &:active {
+    @slot;
+  }
+  &[data-force-state="active"] {
+    @slot;
+  }
+}
+
+/*
+ * D0/D1 direction: "Ledger" — cool neutrals, ink-blue accent used sparingly,
+ * hairline borders over shadow, tight rows, 4px radius base.
+ * See docs/conventions/design-system.md for the process and rationale.
+ * Dark mode is structured (semantic tokens reference primitives) but not
+ * valued — light only in v1, per design-system.md §3.
+ */
+
+@theme {
+  /* ---- Primitives: neutral ramp (cool), 12 steps, OKLCH ---- */
+  --color-neutral-0: oklch(1 0 0);
+  --color-neutral-50: oklch(0.979 0.002 247.8);
+  --color-neutral-100: oklch(0.954 0.003 247.9);
+  --color-neutral-200: oklch(0.920 0.005 247.9);
+  --color-neutral-300: oklch(0.871 0.010 252.8);
+  --color-neutral-400: oklch(0.786 0.014 251.6);
+  --color-neutral-500: oklch(0.661 0.023 261.7);
+  --color-neutral-600: oklch(0.551 0.023 264.4);
+  --color-neutral-700: oklch(0.446 0.026 256.8);
+  --color-neutral-800: oklch(0.346 0.021 259.4);
+  --color-neutral-900: oklch(0.260 0.020 264.1);
+  --color-neutral-950: oklch(0.173 0.015 266.7);
+
+  /* ---- Primitives: accent ramp (ink blue), 12 steps, OKLCH ---- */
+  /* accent-700 = the locked D0 "Send quote" blue (#2b4b8f) */
+  --color-accent-50: oklch(0.980 0.008 263.3);
+  --color-accent-100: oklch(0.942 0.013 263.3);
+  --color-accent-200: oklch(0.900 0.030 263.3);
+  --color-accent-300: oklch(0.840 0.050 263.3);
+  --color-accent-400: oklch(0.720 0.080 263.3);
+  --color-accent-500: oklch(0.600 0.105 263.3);
+  --color-accent-600: oklch(0.500 0.118 263.3);
+  --color-accent-700: oklch(0.426 0.119 263.3);
+  --color-accent-800: oklch(0.365 0.110 263.3);
+  --color-accent-900: oklch(0.300 0.095 263.3);
+  --color-accent-950: oklch(0.220 0.070 263.3);
+
+  /* ---- Primitive: table header wash ----
+   * A blue-grey one step past the neutral ramp toward the accent hue, tinted
+   * enough to read as "this is the header" without becoming a coloured band.
+   * D9-0 design revision (user, 2026-09-08). Its only consumer is the DataTable
+   * header; kept as a primitive so a later dark-mode swap has somewhere to go. */
+  --color-blue-grey-100: oklch(0.920 0.034 247.8);
+
+  /* ---- Primitives: status hues, reduced 2-step set (solid + subtle) ---- */
+  --color-success-subtle: oklch(0.946 0.021 158.6);
+  --color-success-solid: oklch(0.548 0.119 155.6);
+  --color-warning-subtle: oklch(0.960 0.032 81.0);
+  --color-warning-solid: oklch(0.548 0.111 75.1);
+  --color-danger-subtle: oklch(0.937 0.025 23.6);
+  --color-danger-solid: oklch(0.476 0.150 28.2);
+  --color-info-subtle: oklch(0.939 0.018 250.6);
+  --color-info-solid: oklch(0.524 0.126 252.3);
+
+  /* ---- Semantic: surfaces ---- */
+  --color-background: var(--color-neutral-0);
+  --color-surface: var(--color-neutral-0);
+  --color-surface-raised: var(--color-neutral-0);
+  --color-surface-sunken: var(--color-neutral-50);
+  /* Table (and table-like) column-header row. D9-0 revision. */
+  --color-table-header: var(--color-blue-grey-100);
+
+  /* ---- Semantic: borders ---- */
+  --color-border: var(--color-neutral-200);
+  --color-border-strong: var(--color-neutral-300);
+  --color-border-focus: var(--color-accent-700);
+  /* The rule under a table header — deliberately heavier than border-strong so
+     the header reads as a distinct band (D9-0 revision, user 2026-09-08). */
+  --color-table-header-border: var(--color-neutral-700);
+  /* `ring` is a Tailwind built-in colour utility. The scaffold's base layer
+     (`* { @apply … outline-ring/50 }`) references it, but no --color-ring was
+     defined — dev (Lightning CSS) tolerated the missing value, the Turbopack
+     production build does not. Aliased to the focus colour so the one focus
+     hue stays single-sourced (design-system.md §10). Not a new design token —
+     a scaffold fix, PHASE-00B §7. */
+  --color-ring: var(--color-border-focus);
+
+  /* ---- Semantic: text ---- */
+  --color-text-primary: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-800);
+  --color-text-muted: var(--color-neutral-500);
+  --color-text-on-accent: var(--color-neutral-0);
+
+  /* ---- Semantic: accent ---- */
+  --color-accent: var(--color-accent-700);
+  --color-accent-hover: var(--color-accent-800);
+  --color-accent-active: var(--color-accent-900);
+  --color-accent-subtle: var(--color-accent-100);
+
+  /* ---- Semantic: chrome (app shell sidebar) ---- */
+  /* D0 "Ink Gradient" direction — the sidebar is the one surface that departs
+     from the light/hairline system, to read as distinct chrome at a glance.
+     The gradient is the visual lead; the active-item indicator (a ghost
+     underline) is deliberately quiet so it never competes with it. */
+  --color-chrome-gradient-start: oklch(0.22 0.07 263.3);
+  --color-chrome-gradient-end: oklch(0.14 0.045 263.3);
+  --color-chrome-text: var(--color-neutral-0);
+  --color-chrome-text-muted: oklch(0.78 0.03 263.3);
+  --color-chrome-border: oklch(0.72 0.08 263.3 / 20%);
+  --color-chrome-active-underline: var(--color-accent-300);
+
+  /* ---- Semantic: status ---- */
+  --color-success-subtle-bg: var(--color-success-subtle);
+  --color-success-text: var(--color-success-solid);
+  --color-warning-subtle-bg: var(--color-warning-subtle);
+  --color-warning-text: var(--color-warning-solid);
+  --color-danger-subtle-bg: var(--color-danger-subtle);
+  --color-danger-text: var(--color-danger-solid);
+  --color-info-subtle-bg: var(--color-info-subtle);
+  --color-info-text: var(--color-info-solid);
+
+  /* ---- Business semantic: document status (dot + label, colour from status) ---- */
+  --color-status-draft: var(--color-neutral-500);
+  --color-status-sent: var(--color-info-solid);
+  --color-status-accepted: var(--color-success-solid);
+  --color-status-declined: var(--color-neutral-500);
+  --color-status-expired: var(--color-warning-solid);
+  --color-status-superseded: var(--color-neutral-500);
+  --color-status-paid: var(--color-success-solid);
+  --color-status-partial: var(--color-warning-solid);
+  --color-status-overdue: var(--color-danger-solid);
+  --color-status-voided: var(--color-neutral-500);
+
+  /* ---- Business semantic: inventory status ---- */
+  --color-inventory-available: var(--color-success-solid);
+  --color-inventory-low: var(--color-warning-solid);
+  --color-inventory-committed: var(--color-info-solid);
+  --color-inventory-damaged: var(--color-danger-solid);
+  --color-inventory-maintenance: var(--color-neutral-500);
+
+  /* ---- Typography ---- */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-xs--letter-spacing: 0.01em;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-sm--letter-spacing: 0em;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-base--letter-spacing: 0em;
+  --text-lg: 18px;
+  --text-lg--line-height: 26px;
+  --text-lg--letter-spacing: -0.005em;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-xl--letter-spacing: -0.01em;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+  --text-2xl--letter-spacing: -0.015em;
+  --text-3xl: 30px;
+  --text-3xl--line-height: 38px;
+  --text-3xl--letter-spacing: -0.02em;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --font-numeric-tabular: tabular-nums;
+
+  /* ---- Spacing (4px base) ---- */
+  --spacing-0: 0px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-24: 96px;
+
+  /* ---- Radius (4px base — Ledger) ---- */
+  --radius-base: 4px;
+  --radius-sm: calc(var(--radius-base) - 2px);
+  --radius-md: var(--radius-base);
+  --radius-lg: calc(var(--radius-base) + 4px);
+  --radius-full: 9999px;
+
+  /* ---- Elevation (overlays only; resting surfaces stay flat/hairline) ---- */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(22, 24, 29, 0.05);
+  --shadow-md: 0 4px 12px rgba(22, 24, 29, 0.08);
+  --shadow-lg: 0 12px 32px rgba(22, 24, 29, 0.14);
+
+  /* ---- Motion ---- */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 240ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ---- Density ---- */
+  --control-h-sm: 32px;
+  --control-h-md: 36px;
+  --control-h-lg: 40px;
+
+  /* ---- Focus ---- */
+  --focus-ring: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-border-focus);
+
+  /* ---- Layout ---- */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --container-form: 680px;
+  --container-app: 1440px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-text-primary;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/*
+ * Forced-state convention for /dev/gallery (ui-conventions.md §2, PHASE-00B §5.5,
+ * §10 IMPROVEMENT "forced-state CSS convention decided once").
+ *
+ * The gallery renders each state as a STATIC instance — it cannot rely on a real
+ * pointer hovering or focus landing. `data-force-state="hover"` (etc.) on a
+ * primitive makes the browser evaluate that primitive's real state selectors as
+ * if the state were active, so the forced instance and the real interaction
+ * share ONE rule. This works because every Tier 1 primitive styles its states
+ * through Tailwind's `hover:` / `focus-visible:` / `active:` / `disabled:` /
+ * `aria-invalid:` variants, which compile to `:hover` / `:focus-visible` /
+ * `:active` / `:disabled` / `[aria-invalid]` — the same selectors aliased below.
+ *
+ * `disabled` and `aria-invalid` are set as real attributes by the gallery
+ * (they are DOM state, not pseudo-classes), so they need no alias here.
+ * Radix `data-[state=…]` values are likewise set as real props in the gallery.
+ */
